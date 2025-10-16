@@ -5,25 +5,29 @@ import cors from "cors";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { createClient } from "redis";
 
 const sqlite3 = sqlite3pkg.verbose();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const BASE_URL = `http://localhost:${PORT}`;
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+
+// Redis client
+const redisClient = createClient({ url: "redis://redis:6379" });
+redisClient.on("error", (err) => console.error("Redis error:", err));
+await redisClient.connect();
 
 app.use(cors());
 app.use(express.json());
 
-// Ensure data folder exists
-const dataFolder = path.join(__dirname, "data");
-if (!fs.existsSync(dataFolder)) fs.mkdirSync(dataFolder);
+// SQLite setup
+const dataDir = path.join(__dirname, "data");
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
 
-// Initialize SQLite database
-const dbPath = path.join(dataFolder, "urls.db");
+const dbPath = path.join(dataDir, "urls.db");
 const db = new sqlite3.Database(dbPath);
 
 db.run(`
@@ -33,27 +37,40 @@ db.run(`
   )
 `);
 
-// API endpoint
-app.post("/api/shorten", (req, res) => {
+// Shorten URL
+app.post("/api/shorten", async (req, res) => {
   const { longUrl } = req.body;
   if (!longUrl) return res.status(400).json({ error: "Missing longUrl" });
 
   const shortCode = nanoid(6);
-  db.run(
-    "INSERT INTO urls (short_code, long_url) VALUES (?, ?)",
-    [shortCode, longUrl],
-    function (err) {
-      if (err) return res.status(500).json({ error: "Database error" });
-      res.json({ shortUrl: `${BASE_URL}/s/${shortCode}` });
-    }
-  );
+
+  db.run("INSERT INTO urls (short_code, long_url) VALUES (?, ?)", [shortCode, longUrl], async (err) => {
+    if (err) return res.status(500).json({ error: "Database error" });
+
+    // Store in Redis
+    await redisClient.set(shortCode, longUrl);
+    res.json({ shortUrl: `${BASE_URL}/s/${shortCode}` });
+  });
 });
 
-app.get("/s/:shortCode", (req, res) => {
+// Redirect endpoint with caching
+app.get("/s/:shortCode", async (req, res) => {
   const { shortCode } = req.params;
-  db.get("SELECT long_url FROM urls WHERE short_code = ?", [shortCode], (err, row) => {
+
+  // 1️⃣ Check Redis cache first
+  const cachedUrl = await redisClient.get(shortCode);
+  if (cachedUrl) {
+    console.log("Cache hit:", shortCode);
+    return res.redirect(cachedUrl);
+  }
+
+  // 2️⃣ If not cached, check SQLite
+  db.get("SELECT long_url FROM urls WHERE short_code = ?", [shortCode], async (err, row) => {
     if (err) return res.status(500).json({ error: "Database error" });
     if (!row) return res.status(404).json({ error: "Short URL not found" });
+
+    // Store in Redis for next time
+    await redisClient.set(shortCode, row.long_url);
     res.redirect(row.long_url);
   });
 });
@@ -65,4 +82,4 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
-app.listen(PORT, () => console.log(`Server running on ${BASE_URL}`));
+app.listen(PORT, () => console.log(` Server running on ${BASE_URL}`));
