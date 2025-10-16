@@ -1,4 +1,4 @@
-# URL_Shortner
+# URL_Shortener
 # Monitoring a Containerized URL Shortener Webservice
 
 A DevOps project to build, containerize, and monitor a functional URL shortener webservice using Docker, Prometheus, and Grafana. The project is designed to demonstrate containerization, service monitoring, metrics visualization, and alerting.
