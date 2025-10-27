@@ -1,85 +1,98 @@
+// backend/server.js
 import express from "express";
-import sqlite3pkg from "sqlite3";
+import { Pool } from "pg";
 import { nanoid } from "nanoid";
 import cors from "cors";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { createClient } from "redis";
+import dotenv from "dotenv";
 
-const sqlite3 = sqlite3pkg.verbose();
+dotenv.config();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
 const PORT = process.env.PORT || 5000;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+const DATABASE_URL = process.env.DATABASE_URL || "postgresql://user:password@postgres:5432/url_shortener";
 
-// Redis client
-const redisClient = createClient({ url: "redis://redis:6379" });
-redisClient.on("error", (err) => console.error("Redis error:", err));
-await redisClient.connect();
+const pool = new Pool({
+  connectionString: DATABASE_URL,
+  // optionally add ssl, idleTimeoutMillis, etc for production
+});
 
+const app = express();
 app.use(cors());
 app.use(express.json());
 
-// SQLite setup
-const dataDir = path.join(__dirname, "data");
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
+// create table if it doesn't exist
+async function initDb() {
+  const createTableSql = `
+    CREATE TABLE IF NOT EXISTS urls (
+      short_code VARCHAR(32) PRIMARY KEY,
+      long_url TEXT NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+    )
+  `;
+  await pool.query(createTableSql);
+}
 
-const dbPath = path.join(dataDir, "urls.db");
-const db = new sqlite3.Database(dbPath);
+initDb().catch((err) => {
+  console.error("Failed to initialize DB:", err);
+  process.exit(1);
+});
 
-db.run(`
-  CREATE TABLE IF NOT EXISTS urls (
-    short_code TEXT PRIMARY KEY,
-    long_url TEXT
-  )
-`);
+// health check
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok" });
+});
 
-// Shorten URL
+// shorten
 app.post("/api/shorten", async (req, res) => {
   const { longUrl } = req.body;
   if (!longUrl) return res.status(400).json({ error: "Missing longUrl" });
 
   const shortCode = nanoid(6);
-
-  db.run("INSERT INTO urls (short_code, long_url) VALUES (?, ?)", [shortCode, longUrl], async (err) => {
-    if (err) return res.status(500).json({ error: "Database error" });
-
-    // Store in Redis
-    await redisClient.set(shortCode, longUrl);
+  try {
+    await pool.query(
+      `INSERT INTO urls (short_code, long_url) VALUES ($1, $2)`,
+      [shortCode, longUrl]
+    );
     res.json({ shortUrl: `${BASE_URL}/s/${shortCode}` });
-  });
+  } catch (err) {
+    console.error("DB insert error:", err);
+    // conflict (unlikely) -> try again or return error
+    res.status(500).json({ error: "Database error" });
+  }
 });
 
-// Redirect endpoint with caching
+// redirect
 app.get("/s/:shortCode", async (req, res) => {
   const { shortCode } = req.params;
-
-  // 1️⃣ Check Redis cache first
-  const cachedUrl = await redisClient.get(shortCode);
-  if (cachedUrl) {
-    console.log("Cache hit:", shortCode);
-    return res.redirect(cachedUrl);
+  try {
+    const result = await pool.query(
+      `SELECT long_url FROM urls WHERE short_code = $1 LIMIT 1`,
+      [shortCode]
+    );
+    if (result.rowCount === 0) return res.status(404).send("Short URL not found");
+    const longUrl = result.rows[0].long_url;
+    return res.redirect(longUrl);
+  } catch (err) {
+    console.error("DB select error:", err);
+    return res.status(500).json({ error: "Database error" });
   }
-
-  // 2️⃣ If not cached, check SQLite
-  db.get("SELECT long_url FROM urls WHERE short_code = ?", [shortCode], async (err, row) => {
-    if (err) return res.status(500).json({ error: "Database error" });
-    if (!row) return res.status(404).json({ error: "Short URL not found" });
-
-    // Store in Redis for next time
-    await redisClient.set(shortCode, row.long_url);
-    res.redirect(row.long_url);
-  });
 });
 
-// Serve frontend build
+// Serve frontend build (if you have build in ../frontend/build)
 const frontendPath = path.resolve(__dirname, "../frontend/build");
-app.use(express.static(frontendPath));
-app.get("*", (req, res) => {
-  res.sendFile(path.join(frontendPath, "index.html"));
-});
+if (fs.existsSync(frontendPath)) {
+  app.use(express.static(frontendPath));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(frontendPath, "index.html"));
+  });
+}
 
-app.listen(PORT, () => console.log(` Server running on ${BASE_URL}`));
+app.listen(PORT, () => {
+  console.log(`Server running on ${BASE_URL}`);
+});
