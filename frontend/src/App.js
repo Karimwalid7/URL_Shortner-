@@ -11,7 +11,7 @@ function App() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/shorten", { longUrl });
+      const res = await axios.post("/api/shorten", { longUrl });
       setShortUrl(res.data.shortUrl);
     } catch (err) {
       alert("Error creating short URL");
