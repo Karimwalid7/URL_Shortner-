@@ -12,7 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 5000;
-const BASE_URL = process.env.BASE_URL || `http://localhost:3000`;  // Override via env in both setups
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`; // Override via env in both setups
 
 // --- Database Configuration (Hybrid: Files or Env Vars) ---
 let DB_USER, DB_PASSWORD, DB_NAME;

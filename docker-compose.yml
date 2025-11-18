@@ -16,7 +16,7 @@ services:
       - postgres_password
       - postgres_db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $(cat /run/secrets/postgres_user) -d postgres"]
+      test: ["CMD-SHELL", "pg_isready -U $(cat /run/secrets/postgres_user) -d $(cat /run/secrets/postgres_db)"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,6 +27,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: url_shortener_backend
+    ports:
+      - "5000:5000"
     environment:
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432

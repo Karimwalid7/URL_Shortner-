@@ -7,19 +7,24 @@ function App() {
   const [shortUrl, setShortUrl] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const API_BASE_URL = process.env.REACT_APP_API_URL || "";
+
+const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post("/api/shorten", { longUrl });
+      // THIS is the fix. Change the URL:
+      const res = await axios.post("http://localhost:5000/api/shorten", { longUrl });
+      
       setShortUrl(res.data.shortUrl);
     } catch (err) {
-      alert("Error creating short URL");
+      // This will help you debug
+      console.error("API call failed:", err); 
+      alert("Error creating short URL. Check F12 console.");
     } finally {
       setLoading(false);
     }
   };
-
   const handleCopy = () => {
     navigator.clipboard.writeText(shortUrl);
     alert("Short URL copied to clipboard!");
