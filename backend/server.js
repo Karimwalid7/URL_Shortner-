@@ -6,13 +6,45 @@ import cors from "cors";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-// Remove dotenv if not needed elsewhere
+import * as promClient from 'prom-client';  // Added for Prometheus metrics
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 5000;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`; // Override via env in both setups
+
+// --- Prometheus Metrics Setup ---
+const register = new promClient.Registry();
+promClient.collectDefaultMetrics({ register });
+
+// Custom counters
+const shortenedUrlsTotal = new promClient.Counter({
+  name: 'shortened_urls_total',
+  help: 'Number of URLs successfully shortened',
+  registers: [register],
+});
+
+const successfulRedirectsTotal = new promClient.Counter({
+  name: 'successful_redirects_total',
+  help: 'Number of successful redirects',
+  registers: [register],
+});
+
+const failedLookupsTotal = new promClient.Counter({
+  name: 'failed_lookups_total',
+  help: 'Number of failed lookups (404 errors)',
+  registers: [register],
+});
+
+// Custom histogram for request latency
+const requestDuration = new promClient.Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds',
+  labelNames: ['operation', 'code'],
+  buckets: [0.05, 0.1, 0.3, 0.5, 1, 3, 5],
+  registers: [register],
+});
 
 // --- Database Configuration (Hybrid: Files or Env Vars) ---
 let DB_USER, DB_PASSWORD, DB_NAME;
@@ -101,10 +133,15 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// shorten
+// shorten (instrumented with metrics)
 app.post("/api/shorten", async (req, res) => {
+  const endTimer = requestDuration.startTimer({ operation: 'shorten' });
   const { longUrl } = req.body;
-  if (!longUrl) return res.status(400).json({ error: "Missing longUrl" });
+  if (!longUrl) {
+    res.status(400).json({ error: "Missing longUrl" });
+    endTimer({ code: res.statusCode });
+    return;
+  }
 
   try {
     // 1. Check if URL already exists (prevents duplicate entries and constraint errors)
@@ -115,42 +152,57 @@ app.post("/api/shorten", async (req, res) => {
 
     if (existing.rowCount > 0) {
       const shortCode = existing.rows[0].short_code;
-      return res.json({ shortUrl: `${BASE_URL}/s/${shortCode}`, message: "URL already shortened" });
+      shortenedUrlsTotal.inc();  // Count as success (existing is still a successful shorten)
+      res.json({ shortUrl: `${BASE_URL}/s/${shortCode}`, message: "URL already shortened" });
+    } else {
+      // 2. Insert new URL
+      const shortCode = nanoid(6);
+      await pool.query(
+        `INSERT INTO urls (short_code, long_url) VALUES ($1, $2)`,
+        [shortCode, longUrl]
+      );
+      shortenedUrlsTotal.inc();  // Count new insertion as success
+      res.json({ shortUrl: `${BASE_URL}/s/${shortCode}` });
     }
-
-    // 2. Insert new URL
-    const shortCode = nanoid(6);
-    await pool.query(
-      `INSERT INTO urls (short_code, long_url) VALUES ($1, $2)`,
-      [shortCode, longUrl]
-    );
-    
-    res.json({ shortUrl: `${BASE_URL}/s/${shortCode}` });
   } catch (err) {
     console.error("DB operation error (shorten):", err);
     res.status(500).json({ error: "Database error during URL shortening." });
+  } finally {
+    endTimer({ code: res.statusCode });
   }
 });
 
-// redirect
+// redirect (instrumented with metrics)
 app.get("/s/:shortCode", async (req, res) => {
+  const endTimer = requestDuration.startTimer({ operation: 'redirect' });
   const { shortCode } = req.params;
   try {
     const result = await pool.query(
       `SELECT long_url FROM urls WHERE short_code = $1 LIMIT 1`,
       [shortCode]
     );
-    if (result.rowCount === 0) return res.status(404).send("Short URL not found");
-    
-    const longUrl = result.rows[0].long_url;
-    // Essential: Ensure the URL has a protocol for redirection
-    const redirectUrl = longUrl.startsWith('http') ? longUrl : `http://${longUrl}`;
-    
-    return res.redirect(301, redirectUrl);
+    if (result.rowCount === 0) {
+      failedLookupsTotal.inc();
+      res.status(404).send("Short URL not found");
+    } else {
+      successfulRedirectsTotal.inc();
+      const longUrl = result.rows[0].long_url;
+      // Essential: Ensure the URL has a protocol for redirection
+      const redirectUrl = longUrl.startsWith('http') ? longUrl : `http://${longUrl}`;
+      res.redirect(301, redirectUrl);
+    }
   } catch (err) {
     console.error("DB select error (redirect):", err);
-    return res.status(500).json({ error: "Database error" });
+    res.status(500).json({ error: "Database error" });
+  } finally {
+    endTimer({ code: res.statusCode });
   }
+});
+
+// Metrics endpoint for Prometheus scraping
+app.get('/metrics', async (req, res) => {
+  res.setHeader('Content-Type', register.contentType);
+  res.send(await register.metrics());
 });
 
 // Serve frontend build (if you have build in ../frontend/build)
