@@ -18,7 +18,7 @@ To create a lightweight, containerized URL shortener service with built-in monit
 
 **Objectives:**  
 1. Develop a webservice capable of shortening URLs and redirecting users.  
-2. Persist URL mappings in a simple database (SQLite).  
+2. Persist URL mappings in a simple database.  
 3. Expose custom performance metrics from the webservice.  
 4. Use Prometheus to scrape metrics and Grafana to visualize system health and usage patterns.  
 5. Containerize the entire stack using Docker and orchestrate with Docker Compose.
@@ -28,9 +28,9 @@ To create a lightweight, containerized URL shortener service with built-in monit
 ## System Analysis and Design
 **System Components:**  
 - **Webservice:** Node.js with Express framework to handle URL shortening and redirects.  
-- **Database:** SQLite to store URL mappings.  
+- **Database:** PostgreSQL to store URL mappings.  
 - **Monitoring Tools:** Prometheus for metric collection, Grafana for dashboard visualization.  
-- **Containerization:** Docker for each service and Docker Compose for orchestration.
+- **Containerization:** Docker for each service and Kubernetes for orchestration.
 
 **Design Approach:**  
 - The webservice exposes RESTful APIs: one for shortening URLs and another for redirection.  
@@ -49,9 +49,9 @@ To create a lightweight, containerized URL shortener service with built-in monit
 
 **Project Plan:**  
 1. **Week 1:** Build URL Shortener app, DB, write Dockerfile & docker-compose.yml 
-2. **Week 2:** Add Prometheus client metrics (URL count, redirects, 404s, latency), configure prometheus.yml.  
-3. **Week 3:** Add Grafana to Docker Compose, connect to Prometheus, build dashboard (URL stats, latency, 404s)  
-4. **Week 4:** Configure alerts in Grafana, add Docker volumes for persistence, finalize documentation  
+2. **Week 2:** Add Kubenetes, Add client metrics (URL count, redirects, 404s, latency), configure prometheus.yml.  
+3. **Week 3:** Add Grafana, connect to Prometheus, build dashboard (URL stats, latency, 404s)  
+4. **Week 4:** Configure alerts in Grafana, finalize documentation  
 ---
 
 ## Algorithm, Methods, and Techniques
@@ -74,9 +74,9 @@ To create a lightweight, containerized URL shortener service with built-in monit
 
 ## Deliverables
 1. Fully functional URL shortener webservice with REST API endpoints.  
-2. SQLite database for URL mappings.  
+2. PostgreSQL database for URL mappings.  
 3. Prometheus configuration to scrape metrics.  
 4. Grafana dashboards visualizing performance and usage metrics.  
 5. Docker images for the webservice, Prometheus, and Grafana.  
-6. Docker Compose file for orchestration of all services.  
+6. Kubernets Files for orchestration of all services.  
 7. Project documentation (README, diagrams, and usage instructions).
