@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: url-shortener-monitor
+  labels:
+    release: monitoring   # ← this is the correct one for your cluster
+spec:
+  selector:
+    matchLabels:
+      app: url-shortener
+  namespaceSelector:
+    matchNames:
+      - default
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s
