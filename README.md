@@ -77,6 +77,6 @@ To create a lightweight, containerized URL shortener service with built-in monit
 2. PostgreSQL database for URL mappings.  
 3. Prometheus configuration to scrape metrics.  
 4. Grafana dashboards visualizing performance and usage metrics.  
-5. Docker images for the webservice, Prometheus, and Grafana.  
+5. Docker images for the webservice.
 6. Kubernets Files for orchestration of all services.  
 7. Project documentation (README, diagrams, and usage instructions).
