@@ -1,3 +1,6 @@
+
+<img width="1920" height="1080" alt="Screenshot 2025-11-15 134554" src="https://github.com/user-attachments/assets/959d898a-cbc6-48ae-b864-d4a9b96052db" />
+
 # URL_Shortener
 # Monitoring a Containerized URL Shortener Webservice
 
@@ -10,42 +13,115 @@ A DevOps project to build, containerize, and monitor a functional URL shortener 
 - Yusuf Salah Nafea Hassan 
 - Ahmed Mohamed Hassan Khodary 
 - Adham Emad Elrefaie 
+---
+
+# 1. Project Planning & Management
+## 1.1 Project Proposal — Overview, Objectives & Scope**
+
+Overview: Build a scalable, secure, and user-friendly URL shortening service that accepts long URLs and returns short, memorable aliases (with redirect), analytics, optional user accounts, and API access.
+
+**Objectives**
+1. Core: shorten URLs, redirect to original, track basic analytics.
+2. Security: prevent malicious URLs, rate-limit abuse.
+3. Performance: <100ms redirect latency under normal load.
+4. Extensibility: API-first design for integration.
+5. UX: simple web UI & optional user authentication for link management.
+
+**Scope (MVP vs. Future)**
+
+1. MVP: shorten, redirect, analytics (click count, referrer, timestamp), basic web UI, REST API.
+
+2. v1+: custom aliases, auth & user dashboard, QR code, expiration, link tags, CSV import/export.
 
 ---
-## Idea and Objectives
-**Idea:**  
-To create a lightweight, containerized URL shortener service with built-in monitoring for performance and usage metrics.
 
-**Objectives:**  
-1. Develop a webservice capable of shortening URLs and redirecting users.  
-2. Persist URL mappings in a simple database.  
-3. Expose custom performance metrics from the webservice.  
-4. Use Prometheus to scrape metrics and Grafana to visualize system health and usage patterns.  
-5. Containerize the entire stack using Docker and orchestrate with Docker Compose.
----
-## Core Features: 
+## 1.2 Project Plan (Timeline & Milestones)
 
-1. Shorten long URLs into compact shareable aliases
-2. Redirect to the original URL in milliseconds
-3. Basic analytics (click count, timestamp, referrer, user-agent, IP hash)
-4. Optional custom aliases
-5. Simple and clean web interface
+| Steps | Feature |
+|--------|-------------|
+| Week 1 | Project kickoff, requirements gathering, stakeholder analysis, Use cases, DB design  |
+| Week 2 | Backend skeleton + DB migrations + API endpoints  |
+| Week 3 | Frontend basic UI + tests for endpoints |
+| Week 4 | Containiraztion using Docker  |
+| Week 5 | Orchestration using Kubernets |
+| Week 6 | Monitoring/Alerting + Bug Fixes |
+
+<img width="1082" height="694" alt="Gantt Chart Whiteboard 0png" src="https://github.com/user-attachments/assets/b9a5ed2c-b18f-4d83-bde3-657b64824d07" />
+
+## 1.3 Task Assignment & Roles (example small team)
+
+1. Project Manager / Team Lead — coordinate schedule, deliverables, presentation.
+2. Backend Engineer — API, database, authentication, analytics ingestion.
+3. Frontend Engineer / UX — web UI, wireframes, accessibility.
+4. DevOps / QA — CI/CD, hosting, tests, performance tuning.
+5. Documentation / Tester — user manual, test cases, video demo.
 -----
+## 1.4 Risk Assessment & Mitigation
+| Risk | Impact |	Likelihood | Mitigation |
+|------|--------|------------|------------|
+| Abuse (spam) | High | Medium	| Rate-limiting |
+| Malicious target URLs |	High | Medium |	Virus/malware/URL reputation checks (external API) or block-listing | 
+| Data loss	| High | Low |	Backups, Persistent Database
+| Performance under high load |	Medium | Low |	Caching, CDN for redirects, horizontal scaling |
+---------
+## 1.5 KPIs
 
-## System Analysis and Design
-**System Components:**  
-- **Webservice:** Node.js with Express framework to handle URL shortening and redirects.  
-- **Database:** PostgreSQL to store URL mappings.  
-- **Monitoring Tools:** Prometheus for metric collection, Grafana for dashboard visualization.  
-- **Containerization:** Docker for each service and Kubernetes for orchestration.
+1. Redirect latency: median < 100ms.
+2. Error rate (4xx/5xx) during redirects: <0.5%.
+3. User adoption: number of links created (semester target).
+4. Daily active links / requests — baseline & growth.
+----------
 
-**Design Approach:**  
-- The webservice exposes RESTful APIs: one for shortening URLs and another for redirection.  
-- Custom metrics (e.g., total requests, redirects, error rates) are exposed via an endpoint for Prometheus scraping.  
-- Grafana dashboards provide real-time visualization of these metrics, showing system performance and usage patterns.  
-- Docker ensures portability and isolation of services.
+# 2. Literature Review / Feedback & Evaluation
 
+## Lecturer’s feedback items to collect
+
+1. Quality of documentation
+2. Code cleanliness & comments
+3. Test coverage
+4. Security considerations
+5. UX accessibility
+
+## Suggested improvements to include after feedback:
+
+1. Add automated malware checking for target URLs
+2. Add separate analytics retention policy
+3. Add rate-limiting & token quotas for public API
+
+## Final Grading Criteria (example)
+
+1. Documentation & report: 25%
+2. Implementation & functionality: 35%
+3. Testing & QA: 15%
+4. Presentation & demo: 15%
+5. Innovation & extras: 10%
 ---
+# 3. Requirements Gathering 
+
+## 3.1 Stakeholder Analysis
+
+1. End users — want quick, reliable shortening, link management.
+2. Developers — API to integrate with apps.
+3. Lecturer/examiner — evaluate technical design, tests, documentation.
+
+## 3.2 User Stories & Use Cases 
+
+As a user, I can submit a long URL and receive a short URL.
+
+## 3.3 Functional Requirements
+
+1. Create short URLs (auto-generated).
+2. Redirect short URL to original URL.
+3. User authentication & link management (create/read/delete).
+4. Public REST API with API key / token auth.
+
+## 3.4 Non-functional Requirements
+
+1. Performance: redirect latency targets .
+2. Security: input validation, Alerting .
+3. Reliability: Perrsistent Volumes, backups.
+4. Usability: accessible UI, simple flow, mobile responsive.
+------
 
 ## Scope and Project Plan
 **Scope:**  
