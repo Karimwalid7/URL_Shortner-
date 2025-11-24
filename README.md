@@ -48,7 +48,7 @@ Overview: Build a scalable, secure, and user-friendly URL shortening service tha
 
 <img width="1082" height="694" alt="Gantt Chart Whiteboard 0png" src="https://github.com/user-attachments/assets/b9a5ed2c-b18f-4d83-bde3-657b64824d07" />
 
-## 1.3 Task Assignment & Roles (example small team)
+## 1.3 Task Assignment & Roles
 
 1. Project Manager / Team Lead — coordinate schedule, deliverables, presentation.
 2. Backend Engineer — API, database, authentication, analytics ingestion.
