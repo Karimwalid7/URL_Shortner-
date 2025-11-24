@@ -22,8 +22,15 @@ To create a lightweight, containerized URL shortener service with built-in monit
 3. Expose custom performance metrics from the webservice.  
 4. Use Prometheus to scrape metrics and Grafana to visualize system health and usage patterns.  
 5. Containerize the entire stack using Docker and orchestrate with Docker Compose.
-
 ---
+## Core Features: 
+
+1. Shorten long URLs into compact shareable aliases
+2. Redirect to the original URL in milliseconds
+3. Basic analytics (click count, timestamp, referrer, user-agent, IP hash)
+4. Optional custom aliases
+5. Simple and clean web interface
+-----
 
 ## System Analysis and Design
 **System Components:**  
