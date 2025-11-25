@@ -21,11 +21,12 @@ A DevOps project to build, containerize, and monitor a functional URL shortener 
 Overview: Build a scalable, secure, and user-friendly URL shortening service that accepts long URLs and returns short, memorable aliases (with redirect), analytics, optional user accounts, and API access.
 
 **Objectives**
-1. Core: shorten URLs, redirect to original, track basic analytics.
-2. Security: prevent malicious URLs, rate-limit abuse.
-3. Performance: <100ms redirect latency under normal load.
-4. Extensibility: API-first design for integration.
-5. UX: simple web UI & optional user authentication for link management.
+
+1. Reduce long URLs into short, manageable links.
+2. Provide high performance (fast redirect times, minimal latency).
+3. Ensure data integrity and persistence using PostgreSQL.
+4. Collect system metrics for monitoring (Prometheus).
+5. Provide an intuitive front-end experience.
 
 **Scope (MVP vs. Future)**
 
@@ -50,7 +51,7 @@ Overview: Build a scalable, secure, and user-friendly URL shortening service tha
 
 ## 1.3 Task Assignment & Roles
 
-1. Project Manager / Team Lead — coordinate schedule, deliverables, presentation.
+1. Team Lead — coordinate schedule, deliverables, presentation.
 2. Backend Engineer — API, database, authentication, analytics ingestion.
 3. Frontend Engineer / UX — web UI, wireframes, accessibility.
 4. DevOps / QA — CI/CD, hosting, tests, performance tuning.
@@ -59,10 +60,10 @@ Overview: Build a scalable, secure, and user-friendly URL shortening service tha
 ## 1.4 Risk Assessment & Mitigation
 | Risk | Impact |	Likelihood | Mitigation |
 |------|--------|------------|------------|
-| Abuse (spam) | High | Medium	| Rate-limiting |
-| Malicious target URLs |	High | Medium |	Virus/malware/URL reputation checks (external API) or block-listing | 
-| Data loss	| High | Low |	Backups, Persistent Database
-| Performance under high load |	Medium | Low |	Caching, CDN for redirects, horizontal scaling |
+| DB connection failure | High | Medium	| Retry logic implemented |
+| API downtime |	Medium | Low |	Health checks, monitoring | 
+| Incorrect redirects	| Low | Medium |	Validation + DB constraints |
+| System overload |	Medium | Low | horizontal scaling |
 ---------
 ## 1.5 KPIs
 
